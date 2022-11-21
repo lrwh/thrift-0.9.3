@@ -52,7 +52,7 @@ spec:
           value: |-
             -javaagent:/usr/dd-java-agent/agent/dd-java-agent.jar -Ddd.service=thrift-client  -Ddd.tags=container_host:$(POD_NAME) -Ddd.agent.port=9529
         - name: PARAMS
-          value: "--thrift-server=thrift-server.demo"
+          value: "--thrift.server=thrift-server.demo"
         image: registry.cn-shenzhen.aliyuncs.com/lr_715377484/thrift-client:latest
         imagePullPolicy: Always
         ports:
