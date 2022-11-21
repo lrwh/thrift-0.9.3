@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: thrift-client
+  namespace: demo
+  labels:
+    app: thrift-client
+spec:
+  selector:
+    app: thrift-client
+  ports:
+    - protocol: TCP
+      port:  8080
+      targetPort:  8080
+      nodePort: 32011
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thrift-client
+  namespace: demo
+  labels:
+    app: thrift-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: thrift-client
+  template:
+    metadata:
+      labels:
+        app: thrift-client
+    spec:
+      containers:
+      - name: thrift-client
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NAME_SPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: DD_AGENT_HOST
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.hostIP
+        - name: JAVA_OPTS
+          value: |-
+            -javaagent:/usr/dd-java-agent/agent/dd-java-agent.jar -Ddd.service=thrift-client  -Ddd.tags=container_host:$(POD_NAME) -Ddd.agent.port=9529
+        - name: PARAMS
+          value: "--thrift-server=thrift-server.demo"
+        image: registry.cn-shenzhen.aliyuncs.com/lr_715377484/thrift-client:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort:  8080
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /usr/dd-java-agent/agent
+          name: ddagent
+        - name: varlog
+          mountPath: /data/logs/thrift-client
+        resources:
+          limits: 
+            memory: 512Mi
+          requests:
+            memory: 256Mi
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - set -ex;mkdir -p /ddtrace/agent;cp -r /usr/dd-java-agent/agent/* /ddtrace/agent;
+        image:   pubrepo.jiagouyun.com/datakit/dk-sidecar:1.113
+        imagePullPolicy: Always
+        name: ddtrace-agent-sidecar
+        volumeMounts:
+        - mountPath: /ddtrace/agent
+          name: ddagent
+      restartPolicy: Always
+      volumes:
+      - emptyDir: {}
+        name: ddagent
+      - name: varlog
+        emptyDir: {}

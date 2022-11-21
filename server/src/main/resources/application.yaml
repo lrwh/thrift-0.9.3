@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: thrift-server
+server:
+  port: 0
